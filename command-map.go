@@ -3,7 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+
+	Pokecache "github.com/skadoodle1201/pokedexcli/internal/pokecache"
 )
 
 type RegionMap struct {
@@ -16,17 +19,26 @@ type RegionMap struct {
 	}
 }
 
-func getRegionMap(url string) (RegionMap, error) {
-	response, err := http.Get(url)
-	if err != nil {
-		return RegionMap{}, err
+func getRegionMap(cache *Pokecache.Cache, url string) (RegionMap, error) {
+	var bodyBytes []byte
+
+	bodyBytes, ok := cache.Get(url)
+
+	if !ok {
+		response, err := http.Get(url)
+		if err != nil {
+			return RegionMap{}, err
+		}
+		defer response.Body.Close()
+		bodyBytes, err = io.ReadAll(response.Body)
+		if err != nil {
+			return RegionMap{}, err
+		}
+		cache.Add(url, bodyBytes)
 	}
-	defer response.Body.Close()
 
-	var regionMapData RegionMap
-	decoder := json.NewDecoder(response.Body)
-
-	err = decoder.Decode(&regionMapData)
+	regionMapData := RegionMap{}
+	err := json.Unmarshal(bodyBytes, &regionMapData)
 	if err != nil {
 		return RegionMap{}, err
 	}
@@ -36,7 +48,7 @@ func getRegionMap(url string) (RegionMap, error) {
 
 func commandMap(config *Config) error {
 
-	regionMapData, err := getRegionMap(config.Next)
+	regionMapData, err := getRegionMap(config.Cache, config.Next)
 	if err != nil {
 		return err
 	}
@@ -52,7 +64,7 @@ func commandMap(config *Config) error {
 }
 
 func commandMapb(config *Config) error {
-	regionMapData, err := getRegionMap(config.Previous)
+	regionMapData, err := getRegionMap(config.Cache, config.Previous)
 	if err != nil {
 		return err
 	}
