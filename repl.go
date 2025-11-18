@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
+
+	Pokeapi "github.com/skadoodle1201/pokedexcli/internal/pokeapi"
 )
 
 func cleanInput(text string) []string {
@@ -14,17 +15,14 @@ func cleanInput(text string) []string {
 	return words
 }
 
-func startRepl() {
+type Config struct {
+	pokeapiClient    Pokeapi.Client
+	nextLocationsURL *string
+	prevLocationsURL *string
+}
+
+func startRepl(cfg *Config) {
 	reader := bufio.NewScanner(os.Stdin)
-	cache := Pokecache.NewCache(15 * time.Second)
-
-	config := Config{
-
-		Next:     "https://pokeapi.co/api/v2/location-area",
-		Previous: "",
-		Cache:    cache,
-	}
-
 	for {
 		fmt.Print("Pokedex > ")
 		reader.Scan()
@@ -37,7 +35,7 @@ func startRepl() {
 		commandName := words[0]
 		command, exists := getCommands()[commandName]
 		if exists {
-			err := command.callback(&config)
+			err := command.callback(cfg)
 			if err != nil {
 				fmt.Println(err)
 			}
