@@ -1,0 +1,4 @@
+./client.go
+./location.go
+./pokeapi.go
+./pokemon.go
